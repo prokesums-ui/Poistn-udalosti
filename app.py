@@ -2,12 +2,12 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Načítanie prihlasovacích údajov priamo zo Streamlit Secrets
+# Správne načítanie štruktúry zo secrets
 credentials = Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
 
-# Pripojenie k službe
+# Autorizácia pre gspread
 gc = gspread.authorize(credentials)
 
 # Otvorenie tabuľky
