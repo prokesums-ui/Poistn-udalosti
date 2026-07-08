@@ -71,7 +71,6 @@ if st.session_state.strana == 1:
 elif st.session_state.strana == 2:
     st.title("👤 Kontaktné údaje")
     
-    # Dočasné premenné načítané z pamäte aplikácie
     vst_meno = st.text_input("Meno a priezvisko", value=st.session_state.data['meno'])
     vst_tel = st.text_input("Telefónne číslo", value=st.session_state.data['telefon'])
     vst_email = st.text_input("E-mailová adresa", value=st.session_state.data['email'])
@@ -88,13 +87,19 @@ elif st.session_state.strana == 2:
 elif st.session_state.strana == 3:
     st.title("🚗 Údaje o vozidle")
     
-    # Načítame aktuálnu hodnotu z pamäte
-    vst_vozidlo = st.text_input("Zadajte EČV (ŠPZ) alebo VIN", value=st.session_state.data['vozidlo'])
-    
-    if st.button("Ďalej"):
-        # Priamo pri stlačení tlačidla presne zadefinujeme, že sa text vloží do slovníka udalosti
-        st.session_state.data['vozidlo'] = vst_vozidlo
+    # !!! NEPRIESTRELNÁ OPRAVA: Použitie st.form pre zamedzenie straty dát !!!
+    with st.form("form_vozidlo"):
+        vst_vozidlo = st.text_input("Zadajte EČV (ŠPZ) alebo VIN", value=st.session_state.data['vozidlo'])
+        tlacitko_dalej = st.form_submit_button("Ďalej")
+        
+        if tlacitko_dalej:
+            st.session_state.data['vozidlo'] = vst_vozidlo
+            st.rerun()  # Okamžite prekreslíme aplikáciu s novou hodnotou v pamäti
+
+    # Kontrola prechodu na ďalšiu stranu (vykoná sa po úspešnom odoslaní formulára)
+    if st.session_state.data['vozidlo'] != '' and tlacitko_dalej:
         chod_dalej()
+        st.rerun()
 
 elif st.session_state.strana == 4:
     st.title("📝 Popis a Fotografie")
