@@ -12,21 +12,38 @@ except ImportError:
     KNIŽNICE_OK = False
     st.warning("⚠️ Chýbajú knižnice pre Google Tabuľky. Na GitHube vytvorte súbor requirements.txt s obsahom: streamlit, gspread, google-auth.")
 
-# --- PAMÄŤ APLIKÁCIE ---
+# --- PAMÄŤ APLIKÁCIE (Inicializácia) ---
 if 'strana' not in st.session_state:
     st.session_state.strana = 1
-if 'data' not in st.session_state:
-    st.session_state.data = {'meno': '', 'telefon': '', 'email': '', 'vozidlo': '', 'popis': '', 'foto_nazov': 'Žiadna'}
+
+# Inicializujeme každú hodnotu priamo v session_state, aby sme na ne mohli viazať widgety cez parameter 'key'
+if 'meno' not in st.session_state:
+    st.session_state.meno = ''
+if 'telefon' not in st.session_state:
+    st.session_state.telefon = ''
+if 'email' not in st.session_state:
+    st.session_state.email = ''
+if 'vozidlo' not in st.session_state:
+    st.session_state.vozidlo = ''
+if 'popis' not in st.session_state:
+    st.session_state.popis = ''
+if 'foto_nazov' not in st.session_state:
+    st.session_state.foto_nazov = 'Žiadna'
 
 def chod_dalej(): 
     st.session_state.strana += 1
 
 def zacat_znova():
     st.session_state.strana = 1
-    st.session_state.data = {'meno': '', 'telefon': '', 'email': '', 'vozidlo': '', 'popis': '', 'foto_nazov': 'Žiadna'}
+    st.session_state.meno = ''
+    st.session_state.telefon = ''
+    st.session_state.email = ''
+    st.session_state.vozidlo = ''
+    st.session_state.popis = ''
+    st.session_state.foto_nazov = 'Žiadna'
 
 # --- ZÁPIS DÁT DO GOOGLE TABUĽKY ---
-def uloz_do_google_tabulky(data):
+def uloz_do_google_tabulky():
     if not KNIŽNICE_OK:
         return False
     try:
@@ -55,7 +72,15 @@ def uloz_do_google_tabulky(data):
         tabulka = gc.open_by_key(id_tabulky)
         list1 = tabulka.sheet1
         
-        riadok_na_zapis = [data['meno'], data['telefon'], data['email'], data['vozidlo'], data['popis'], data['foto_nazov']]
+        # Dáta berieme priamo zo session_state, kde sú na 100% uložené
+        riadok_na_zapis = [
+            st.session_state.meno, 
+            st.session_state.telefon, 
+            st.session_state.email, 
+            st.session_state.vozidlo, 
+            st.session_state.popis, 
+            st.session_state.foto_nazov
+        ]
         list1.append_row(riadok_na_zapis)
         return True
     except Exception as e:
@@ -70,36 +95,33 @@ if st.session_state.strana == 1:
 
 elif st.session_state.strana == 2:
     st.title("👤 Kontaktné údaje")
-    meno = st.text_input("Meno a priezvisko", value=st.session_state.data['meno'])
-    telefon = st.text_input("Telefónne číslo", value=st.session_state.data['telefon'])
-    email = st.text_input("E-mailová adresa", value=st.session_state.data['email'])
+    # Cez parameter key="meno" sa vstup ukladá priamo a okamžite do pamäte
+    st.text_input("Meno a priezvisko", key="meno")
+    st.text_input("Telefónne číslo", key="telefon")
+    st.text_input("E-mailová adresa", key="email")
     if st.button("Ďalej"):
-        if meno and telefon and email:  
-            st.session_state.data['meno'], st.session_state.data['telefon'], st.session_state.data['email'] = meno, telefon, email
+        if st.session_state.meno and st.session_state.telefon and st.session_state.email:  
             chod_dalej()
         else: 
             st.error("Prosím, vyplňte všetky povinné údaje.")
 
 elif st.session_state.strana == 3:
     st.title("🚗 Údaje o vozidle")
-    vozidlo = st.text_input("Zadajte EČV (ŠPZ) alebo VIN", value=st.session_state.data['vozidlo'])
-    if st.button("Ďalej"):
-        # !!! TU BOLA CHYBA - PRIDANÉ UKLADANIE DO STATE !!!
-        st.session_state.data['vozidlo'] = vozidlo
-        chod_dalej()
+    # KLÚČOVÁ OPRAVA: Vstup je priamo prepojený s klúčom 'vozidlo' v pamäti
+    st.text_input("Zadajte EČV (ŠPZ) alebo VIN", key="vozidlo")
+    st.button("Ďalej", on_click=chod_dalej)
 
 elif st.session_state.strana == 4:
     st.title("📝 Popis a Fotografie")
-    popis = st.text_area("Popíšte, čo presne sa stalo:", value=st.session_state.data['popis'], height=150)
+    st.text_area("Popíšte, čo presne sa stalo:", key="popis", height=150)
     foto = st.file_uploader("Nahrajte fotku z miesta nehody", type=['jpg', 'png', 'jpeg'])
     
     if st.button("Odoslať hlásenie"):
         with st.spinner('Ukladám hlásenie do databázy...'):
-            st.session_state.data['popis'] = popis
             if foto is not None: 
-                st.session_state.data['foto_nazov'] = foto.name
+                st.session_state.foto_nazov = foto.name
             
-            ulozene = uloz_do_google_tabulky(st.session_state.data)
+            ulozene = uloz_do_google_tabulky()
             if ulozene:
                 chod_dalej()
 
@@ -109,11 +131,10 @@ elif st.session_state.strana == 5:
     st.success("Vaša poistná udalosť bola úspešne zaznamenaná v Google Tabuľke!")
     
     st.subheader("Zhrnutie odoslaných údajov:")
-    d = st.session_state.data
-    st.write(f"**Klient:** {d['meno']}")
-    st.write(f"**Kontakt:** {d['telefon']} | {d['email']}")
-    st.write(f"**Vozidlo:** {d['vozidlo']}")
-    st.write(f"**Popis:** {d['popis']}")
+    st.write(f"**Klient:** {st.session_state.meno}")
+    st.write(f"**Kontakt:** {st.session_state.telefon} | {st.session_state.email}")
+    st.write(f"**Vozidlo:** {st.session_state.vozidlo}")
+    st.write(f"**Popis:** {st.session_state.popis}")
     
     st.markdown("---")
     st.button("Nahlásiť novú udalosť", on_click=zacat_znova)
