@@ -37,7 +37,7 @@ def uloz_do_google_tabulky(data):
         # Načítanie slovníka zo secrets
         info_o_kluci = dict(st.secrets["gcp_service_account"])
         
-        # FIX: Prevod textových \n na skutočné znaky konca riadku pre privátny kľúč
+        # Prevod textových \n na skutočné znaky konca riadku pre privátny kľúč
         if "private_key" in info_o_kluci:
             info_o_kluci["private_key"] = info_o_kluci["private_key"].replace("\\n", "\n")
         
@@ -46,8 +46,13 @@ def uloz_do_google_tabulky(data):
             info_o_kluci,
             scopes=scopes
         )
+        
+        # Inicializácia gspread klienta
         gc = gspread.authorize(credentials)
-        tabulka = gc.open("Databaza_Udalosti")
+        
+        # !!! OPRAVA PRE ZDIEĽANÉ DISKY !!!
+        # Povieme gspreadu, aby pri hľadaní prehľadával aj zdieľané disky (Shared Drives)
+        tabulka = gc.open("Databaza_Udalosti", client_user_with_sheets_api=True)
         list1 = tabulka.sheet1
         
         riadok_na_zapis = [data['meno'], data['telefon'], data['email'], data['vozidlo'], data['popis'], data['foto_nazov']]
@@ -95,7 +100,7 @@ elif st.session_state.strana == 4:
             
             ulozene = uloz_do_google_tabulky(st.session_state.data)
             
-            # OPRAVA: Prepnúť na finálnu stranu len vtedy, ak uloz_do_google_tabulky vrátilo True
+            # Prepnúť na finálnu stranu len ak zápis naozaj prebehol
             if ulozene:
                 chod_dalej()
 
