@@ -50,9 +50,9 @@ def uloz_do_google_tabulky(data):
         # Inicializácia gspread klienta
         gc = gspread.authorize(credentials)
         
-        # !!! OPRAVA PRE ZDIEĽANÉ DISKY !!!
-        # Povieme gspreadu, aby pri hľadaní prehľadával aj zdieľané disky (Shared Drives)
-        tabulka = gc.open("Databaza_Udalosti", client_user_with_sheets_api=True)
+        # PRIAME OTVORENIE CEZ ID TABUĽKY (Rieši problém so Zdieľanými diskami a reštrikciami)
+        id_tabulky = "11t9ktzcZSeDfBfH5BsmfFEsbtGFD559EONP7i1_e0ww"
+        tabulka = gc.open_by_key(id_tabulky)
         list1 = tabulka.sheet1
         
         riadok_na_zapis = [data['meno'], data['telefon'], data['email'], data['vozidlo'], data['popis'], data['foto_nazov']]
@@ -99,8 +99,6 @@ elif st.session_state.strana == 4:
                 st.session_state.data['foto_nazov'] = foto.name
             
             ulozene = uloz_do_google_tabulky(st.session_state.data)
-            
-            # Prepnúť na finálnu stranu len ak zápis naozaj prebehol
             if ulozene:
                 chod_dalej()
 
