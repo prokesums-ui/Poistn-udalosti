@@ -34,12 +34,13 @@ def uloz_do_google_tabulky(data):
             st.error("Chýbajú prístupové kľúče (sekcia [gcp_service_account]) v Streamlit Secrets.")
             return False
             
-        # Načítanie slovníka zo secrets
+        # Načítanie secrets do čistého slovníka
         info_o_kluci = dict(st.secrets["gcp_service_account"])
         
-        # Prevod textových \n na skutočné znaky konca riadku pre privátny kľúč
+        # OŠETRENIE ZNAKOV KONCA RIADKOV (Kľúčový fix pre chybu PEM / Invalid Key)
         if "private_key" in info_o_kluci:
-            info_o_kluci["private_key"] = info_o_kluci["private_key"].replace("\\n", "\n")
+            # Nahradí textový reťazec '\n' za skutočný znak nového riadku
+            info_o_kluci["private_key"] = info_o_kluci["private_key"].replace(r'\n', '\n').replace('\\n', '\n')
         
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         credentials = Credentials.from_service_account_info(
@@ -50,7 +51,7 @@ def uloz_do_google_tabulky(data):
         # Inicializácia gspread klienta
         gc = gspread.authorize(credentials)
         
-        # PRIAME OTVORENIE CEZ ID TABUĽKY (Rieši problém so Zdieľanými diskami a reštrikciami)
+        # OTVORENIE CEZ ID TABUĽKY
         id_tabulky = "11t9ktzcZSeDfBfH5BsmfFEsbtGFD559EONP7i1_e0ww"
         tabulka = gc.open_by_key(id_tabulky)
         list1 = tabulka.sheet1
