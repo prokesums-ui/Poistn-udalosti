@@ -1,5 +1,4 @@
 import streamlit as st
-import json
 
 # --- ZÁKLADNÉ NASTAVENIE STRÁNKY ---
 st.set_page_config(page_title="Poistné udalosti", page_icon="📋", layout="centered")
@@ -31,17 +30,12 @@ def uloz_do_google_tabulky(data):
     if not KNIŽNICE_OK:
         return False
     try:
-        if "gcp_json" not in st.secrets:
-            st.error("Chýbajú prístupové kľúče (premenná gcp_json) v sekcii Streamlit Secrets.")
+        if "gcp_service_account" not in st.secrets:
+            st.error("Chýbajú prístupové kľúče (sekcia [gcp_service_account]) v Streamlit Secrets.")
             return False
             
-        # Načítanie čistého JSON textu
-        info_o_kluci = json.loads(st.secrets["gcp_json"])
-        
-        # MAGICKÁ OPRAVA: Preformátujeme medzery na správne zalomenia kľúča priamo v kóde
-        povodny_kluc = info_o_kluci["private_key"]
-        if " " in povodny_kluc:
-            info_o_kluci["private_key"] = povodny_kluc.replace("-----BEGIN PRIVATE KEY----- ", "-----BEGIN PRIVATE KEY-----\n").replace(" -----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----").replace(" ", "\n")
+        # Streamlit automaticky prevedie TOML sekciu na čistý Python dict
+        info_o_kluci = dict(st.secrets["gcp_service_account"])
         
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         credentials = Credentials.from_service_account_info(
@@ -96,7 +90,8 @@ elif st.session_state.strana == 4:
                 st.session_state.data['foto_nazov'] = foto.name
             
             ulozene = uloz_do_google_tabulky(st.session_state.data)
-            chod_dalej()
+            if ulozene:
+                chod_dalej()
 
 elif st.session_state.strana == 5:
     st.balloons()
