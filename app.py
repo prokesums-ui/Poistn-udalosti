@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 
 # --- ZÁKLADNÉ NASTAVENIE STRÁNKY ---
 st.set_page_config(page_title="Poistné udalosti", page_icon="📋", layout="centered")
@@ -31,18 +30,20 @@ def uloz_do_google_tabulky(data):
     if not KNIŽNICE_OK:
         return False
     try:
-        # Definujeme názov súboru s kľúčom
-        nazov_súboru = "kluc.json"
-        
-        if not os.path.exists(nazov_súboru):
-            st.error(f"❌ Súbor '{nazov_súboru}' nebol nájdený na GitHube vedľa app.py. Nahrajte ho tam prosím.")
+        if "gcp_service_account" not in st.secrets:
+            st.error("Chýbajú prístupové kľúče (sekcia [gcp_service_account]) v Streamlit Secrets.")
             return False
             
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        # Načítanie slovníka zo secrets
+        info_o_kluci = dict(st.secrets["gcp_service_account"])
         
-        # Načítanie kľúča priamo zo súboru – 100% bezpečné voči chybám formátu
-        credentials = Credentials.from_service_account_file(
-            nazov_súboru,
+        # FIX: Oprava formátu private_key (prevedie textové \n na skutočné znaky nového riadku)
+        if "private_key" in info_o_kluci:
+            info_o_kluci["private_key"] = info_o_kluci["private_key"].replace("\\n", "\n")
+        
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        credentials = Credentials.from_service_account_info(
+            info_o_kluci,
             scopes=scopes
         )
         gc = gspread.authorize(credentials)
