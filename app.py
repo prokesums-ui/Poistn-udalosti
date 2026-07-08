@@ -15,35 +15,18 @@ except ImportError:
 # --- PAMÄŤ APLIKÁCIE ---
 if 'strana' not in st.session_state:
     st.session_state.strana = 1
-
-# Vstavaná inicializácia hodnôt priamo v session_state pre automatické ukladanie widgetov
-if 'vstup_meno' not in st.session_state:
-    st.session_state.vstup_meno = ''
-if 'vstup_tel' not in st.session_state:
-    st.session_state.vstup_tel = ''
-if 'vstup_email' not in st.session_state:
-    st.session_state.vstup_email = ''
-if 'vstup_vozidlo' not in st.session_state:
-    st.session_state.vstup_vozidlo = ''
-if 'vstup_popis' not in st.session_state:
-    st.session_state.vstup_popis = ''
-if 'foto_nazov' not in st.session_state:
-    st.session_state.foto_nazov = 'Žiadna'
+if 'data' not in st.session_state:
+    st.session_state.data = {'meno': '', 'telefon': '', 'email': '', 'vozidlo': '', 'popis': '', 'foto_nazov': 'Žiadna'}
 
 def chod_dalej(): 
     st.session_state.strana += 1
 
 def zacat_znova():
     st.session_state.strana = 1
-    st.session_state.vstup_meno = ''
-    st.session_state.vstup_tel = ''
-    st.session_state.vstup_email = ''
-    st.session_state.vstup_vozidlo = ''
-    st.session_state.vstup_popis = ''
-    st.session_state.foto_nazov = 'Žiadna'
+    st.session_state.data = {'meno': '', 'telefon': '', 'email': '', 'vozidlo': '', 'popis': '', 'foto_nazov': 'Žiadna'}
 
 # --- ZÁPIS DÁT DO GOOGLE TABUĽKY ---
-def uloz_do_google_tabulky():
+def uloz_do_google_tabulky(data):
     if not KNIŽNICE_OK:
         return False
     try:
@@ -72,15 +55,7 @@ def uloz_do_google_tabulky():
         tabulka = gc.open_by_key(id_tabulky)
         list1 = tabulka.sheet1
         
-        # Hodnoty ťaháme priamo z uzamknutých widgetov, ktoré sú 100% v pamäti
-        riadok_na_zapis = [
-            st.session_state.vstup_meno, 
-            st.session_state.vstup_tel, 
-            st.session_state.vstup_email, 
-            st.session_state.vstup_vozidlo, 
-            st.session_state.vstup_popis, 
-            st.session_state.foto_nazov
-        ]
+        riadok_na_zapis = [data['meno'], data['telefon'], data['email'], data['vozidlo'], data['popis'], data['foto_nazov']]
         list1.append_row(riadok_na_zapis)
         return True
     except Exception as e:
@@ -95,33 +70,51 @@ if st.session_state.strana == 1:
 
 elif st.session_state.strana == 2:
     st.title("👤 Kontaktné údaje")
-    st.text_input("Meno a priezvisko", key="vstup_meno")
-    st.text_input("Telefónne číslo", key="vstup_tel")
-    st.text_input("E-mailová adresa", key="vstup_email")
+    vst_meno = st.text_input("Meno a priezvisko", value=st.session_state.data['meno'])
+    vst_tel = st.text_input("Telefónne číslo", value=st.session_state.data['telefon'])
+    vst_email = st.text_input("E-mailová adresa", value=st.session_state.data['email'])
     
     if st.button("Ďalej"):
-        if st.session_state.vstup_meno and st.session_state.vstup_tel and st.session_state.vstup_email:  
+        if vst_meno and vst_tel and vst_email:  
+            st.session_state.data['meno'] = vst_meno
+            st.session_state.data['telefon'] = vst_tel
+            st.session_state.data['email'] = vst_email
             chod_dalej()
         else: 
             st.error("Prosím, vyplňte všetky povinné údaje.")
 
 elif st.session_state.strana == 3:
     st.title("🚗 Údaje o vozidle")
-    # Vďaka key="vstup_vozidlo" si Streamlit drží hodnotu nezávisle od prekresľovania stránky
-    st.text_input("Zadajte EČV (ŠPZ) alebo VIN", key="vstup_vozidlo")
-    st.button("Ďalej", on_click=chod_dalej)
+    
+    # KLÚČOVÁ OPRAVA: Použijeme on_change spätné volanie (callback)
+    # Keď používateľ dopíše text a klikne na tlačidlo, Streamlit zaručene najskôr spustí túto funkciu
+    def uloz_vozidlo():
+        st.session_state.data['vozidlo'] = st.session_state.docasne_vozidlo
+
+    st.text_input(
+        "Zadajte EČV (ŠPZ) alebo VIN", 
+        value=st.session_state.data['vozidlo'], 
+        key="docasne_vozidlo",
+        on_change=uloz_vozidlo
+    )
+    
+    if st.button("Ďalej"):
+        # Poistka – ak by on_change náhodou nezbehol, uložíme to aj manuálne pred skokom dalej
+        st.session_state.data['vozidlo'] = st.session_state.docasne_vozidlo
+        chod_dalej()
 
 elif st.session_state.strana == 4:
     st.title("📝 Popis a Fotografie")
-    st.text_area("Popíšte, čo presne sa stalo:", key="vstup_popis", height=150)
+    vst_popis = st.text_area("Popíšte, čo presne sa stalo:", value=st.session_state.data['popis'], height=150)
     foto = st.file_uploader("Nahrajte fotku z miesta nehody", type=['jpg', 'png', 'jpeg'])
     
     if st.button("Odoslať hlásenie"):
         with st.spinner('Ukladám hlásenie do databázy...'):
+            st.session_state.data['popis'] = vst_popis
             if foto is not None: 
-                st.session_state.foto_nazov = foto.name
+                st.session_state.data['foto_nazov'] = foto.name
             
-            ulozene = uloz_do_google_tabulky()
+            ulozene = uloz_do_google_tabulky(st.session_state.data)
             if ulozene:
                 chod_dalej()
 
@@ -131,10 +124,11 @@ elif st.session_state.strana == 5:
     st.success("Vaša poistná udalosť bola úspešne zaznamenaná v Google Tabuľke!")
     
     st.subheader("Zhrnutie odoslaných údajov:")
-    st.write(f"**Klient:** {st.session_state.vstup_meno}")
-    st.write(f"**Kontakt:** {st.session_state.vstup_tel} | {st.session_state.vstup_email}")
-    st.write(f"**Vozidlo:** {st.session_state.vstup_vozidlo}")
-    st.write(f"**Popis:** {st.session_state.vstup_popis}")
+    d = st.session_state.data
+    st.write(f"**Klient:** {d['meno']}")
+    st.write(f"**Kontakt:** {d['telefon']} | {d['email']}")
+    st.write(f"**Vozidlo:** {d['vozidlo']}")
+    st.write(f"**Popis:** {d['popis']}")
     
     st.markdown("---")
     st.button("Nahlásiť novú udalosť", on_click=zacat_znova)
