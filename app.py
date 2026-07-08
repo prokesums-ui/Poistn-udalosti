@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 
 # --- ZÁKLADNÉ NASTAVENIE STRÁNKY ---
 st.set_page_config(page_title="Poistné udalosti", page_icon="📋", layout="centered")
@@ -30,16 +31,18 @@ def uloz_do_google_tabulky(data):
     if not KNIŽNICE_OK:
         return False
     try:
-        if "gcp_service_account" not in st.secrets:
-            st.error("Chýbajú prístupové kľúče (sekcia [gcp_service_account]) v Streamlit Secrets.")
+        # Definujeme názov súboru s kľúčom
+        nazov_súboru = "kluc.json"
+        
+        if not os.path.exists(nazov_súboru):
+            st.error(f"❌ Súbor '{nazov_súboru}' nebol nájdený na GitHube vedľa app.py. Nahrajte ho tam prosím.")
             return False
             
-        # Streamlit automaticky prevedie TOML sekciu na čistý Python dict
-        info_o_kluci = dict(st.secrets["gcp_service_account"])
-        
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        credentials = Credentials.from_service_account_info(
-            info_o_kluci,
+        
+        # Načítanie kľúča priamo zo súboru – 100% bezpečné voči chybám formátu
+        credentials = Credentials.from_service_account_file(
+            nazov_súboru,
             scopes=scopes
         )
         gc = gspread.authorize(credentials)
