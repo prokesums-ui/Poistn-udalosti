@@ -70,7 +70,6 @@ if st.session_state.strana == 1:
 
 elif st.session_state.strana == 2:
     st.title("👤 Kontaktné údaje")
-    
     vst_meno = st.text_input("Meno a priezvisko", value=st.session_state.data['meno'])
     vst_tel = st.text_input("Telefónne číslo", value=st.session_state.data['telefon'])
     vst_email = st.text_input("E-mailová adresa", value=st.session_state.data['email'])
@@ -87,19 +86,13 @@ elif st.session_state.strana == 2:
 elif st.session_state.strana == 3:
     st.title("🚗 Údaje o vozidle")
     
-    # !!! NEPRIESTRELNÁ OPRAVA: Použitie st.form pre zamedzenie straty dát !!!
-    with st.form("form_vozidlo"):
-        vst_vozidlo = st.text_input("Zadajte EČV (ŠPZ) alebo VIN", value=st.session_state.data['vozidlo'])
-        tlacitko_dalej = st.form_submit_button("Ďalej")
-        
-        if tlacitko_dalej:
-            st.session_state.data['vozidlo'] = vst_vozidlo
-            st.rerun()  # Okamžite prekreslíme aplikáciu s novou hodnotou v pamäti
-
-    # Kontrola prechodu na ďalšiu stranu (vykoná sa po úspešnom odoslaní formulára)
-    if st.session_state.data['vozidlo'] != '' and tlacitko_dalej:
+    # Priradíme unikátny kľúč 'vstup_vozidlo', aby si Streamlit hodnotu držal samostatne
+    st.text_input("Zadajte EČV (ŠPZ) alebo VIN", value=st.session_state.data['vozidlo'], key="vstup_vozidlo")
+    
+    if st.button("Ďalej"):
+        # Pred prechodom na ďalšiu stranu priamo vytiahneme hodnotu z widgetu a uložíme ju
+        st.session_state.data['vozidlo'] = st.session_state.vstup_vozidlo
         chod_dalej()
-        st.rerun()
 
 elif st.session_state.strana == 4:
     st.title("📝 Popis a Fotografie")
