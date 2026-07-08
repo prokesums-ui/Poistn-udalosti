@@ -35,8 +35,13 @@ def uloz_do_google_tabulky(data):
             st.error("Chýbajú prístupové kľúče (premenná gcp_json) v sekcii Streamlit Secrets.")
             return False
             
-        # Bezpečné natiahnutie kompletného JSON textu zo Secrets pod novým názvom bez diakritiky
+        # Načítanie čistého JSON textu
         info_o_kluci = json.loads(st.secrets["gcp_json"])
+        
+        # MAGICKÁ OPRAVA: Preformátujeme medzery na správne zalomenia kľúča priamo v kóde
+        povodny_kluc = info_o_kluci["private_key"]
+        if " " in povodny_kluc:
+            info_o_kluci["private_key"] = povodny_kluc.replace("-----BEGIN PRIVATE KEY----- ", "-----BEGIN PRIVATE KEY-----\n").replace(" -----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----").replace(" ", "\n")
         
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         credentials = Credentials.from_service_account_info(
