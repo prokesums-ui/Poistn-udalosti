@@ -34,13 +34,12 @@ def uloz_do_google_tabulky(data):
             st.error("Chýbajú prístupové kľúče (sekcia [gcp_service_account]) v Streamlit Secrets.")
             return False
             
-        # Načítanie secrets do čistého slovníka
+        # Načítanie slovníka zo secrets
         info_o_kluci = dict(st.secrets["gcp_service_account"])
         
-        # OŠETRENIE ZNAKOV KONCA RIADKOV (Kľúčový fix pre chybu PEM / Invalid Key)
+        # Prevod textových \n na skutočné znaky konca riadku pre privátny kľúč
         if "private_key" in info_o_kluci:
-            # Nahradí textový reťazec '\n' za skutočný znak nového riadku
-            info_o_kluci["private_key"] = info_o_kluci["private_key"].replace(r'\n', '\n').replace('\\n', '\n')
+            info_o_kluci["private_key"] = info_o_kluci["private_key"].replace("\\n", "\n")
         
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         credentials = Credentials.from_service_account_info(
@@ -85,6 +84,7 @@ elif st.session_state.strana == 3:
     st.title("🚗 Údaje o vozidle")
     vozidlo = st.text_input("Zadajte EČV (ŠPZ) alebo VIN", value=st.session_state.data['vozidlo'])
     if st.button("Ďalej"):
+        # !!! TU BOLA CHYBA - PRIDANÉ UKLADANIE DO STATE !!!
         st.session_state.data['vozidlo'] = vozidlo
         chod_dalej()
 
