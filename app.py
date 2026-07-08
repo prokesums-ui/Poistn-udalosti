@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 
 # --- ZÁKLADNÉ NASTAVENIE STRÁNKY ---
 st.set_page_config(page_title="Poistné udalosti", page_icon="📋", layout="centered")
@@ -30,13 +31,16 @@ def uloz_do_google_tabulky(data):
     if not KNIŽNICE_OK:
         return False
     try:
-        if "gcp_service_account" not in st.secrets:
-            st.error("Chýbajú prístupové kľúče v sekcii Streamlit Secrets.")
+        if "gcp_json" not in st.secrets:
+            st.error("Chýbajú prístupové kľúče (premenná gcp_json) v sekcii Streamlit Secrets.")
             return False
             
+        # Bezpečné natiahnutie kompletného JSON textu zo Secrets pod novým názvom bez diakritiky
+        info_o_kluci = json.loads(st.secrets["gcp_json"])
+        
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         credentials = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
+            info_o_kluci,
             scopes=scopes
         )
         gc = gspread.authorize(credentials)
@@ -86,7 +90,6 @@ elif st.session_state.strana == 4:
             if foto is not None: 
                 st.session_state.data['foto_nazov'] = foto.name
             
-            # Zápis do Google Tabuľky (E-mail sme nateraz vynechali, aby kód nepadal)
             ulozene = uloz_do_google_tabulky(st.session_state.data)
             chod_dalej()
 
